@@ -94,6 +94,7 @@ void init() {
 	ssym['.'] = period;
 	ssym['#'] = neq;
 	ssym[';'] = semicolon;
+	ssym['$'] = comment;
 
 	/*设置保留字名字, 按照字母顺序, 便于折半查找*/
 	strcpy(&(word[0][0]), "begin");
@@ -188,6 +189,7 @@ int getch() {
 			line[ll] = ch;	//没有检查数组越界问题
 			ll++;
 		}
+		line[ll] = 0;
 		printf("\n");
 		fprintf(fa1, "\n");
 	}
@@ -202,7 +204,10 @@ int getch() {
 int getsym() {
 	int i, j, k;
 
-	while (ch == ' ' || ch == 10 || ch == 13 || ch == 9) {	//忽略空格、换行、回车和TAB
+	while (ch == ' ' || ch == 10 || ch == 13 || ch == 9 || ch == '$') {	//忽略空格、换行、回车和TAB
+		if (ch == '$') {
+			cc = ll;
+		}
 		getchdo;
 	}
 	if (ch >= 'a' && ch <= 'z') {	//如果以字母开头，则表示这是一个名字或关键字/保留字
@@ -304,10 +309,10 @@ void error(int n) {
 	char space[81];
 	memset(space, 32, 81);
 
-	space[cc - 1] = 0;	//出错时当前符号已经读完，所以cc-1
+	line[cc - 1] = 0;	//出错时当前符号已经读完，所以cc-1
 
-	printf("****%s!%d\n", space, n);
-	fprintf(fa1, "****%s!%d\n", space, n);
+	printf("****%s!%d\n", line, n);
+	fprintf(fa1, "****%s!%d\n", line, n);
 
 	err++;
 }

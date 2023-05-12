@@ -22,7 +22,7 @@ enum symbol {
 	minus,		//减-
 	times,		//乘*
 	slash,		//除/
-	oddsym,
+	oddsym,		//奇偶判断
 	eql,		//等于=
 	neq,		//不等#
 	lss,		//小于<
@@ -46,9 +46,10 @@ enum symbol {
 	callsym,	//call调用函数
 	constsym,	//常量const
 	varsym,		//变量var
-	procsym		//函数procedure
+	procsym,	//函数procedure
+	comment		//注释
 };
-#define symnum 32	//符号数量
+#define symnum 33	//符号数量
 
 /*虚拟机代码*/
 enum fct {
