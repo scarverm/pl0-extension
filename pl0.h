@@ -13,51 +13,25 @@ typedef enum {
 #define levmax 3	//最大允许过程嵌套声明层次
 #define amax 2047	//地址上界
 
-/*符号*/
+/* 符号 */
 enum symbol {
-	nul,		//无法识别
-	ident,		//名字或数字
-	number,		//数字
-	plus,		//加+
-	minus,		//减-
-	times,		//乘*
-	slash,		//除/
-	oddsym,		//奇偶判断
-	eql,		//等于=
-	neq,		//不等#
-	lss,		//小于<
-	leq,		//小于等于<=
-	gtr,		//大于>
-	geq,		//大于等于>=
-	lparen,		//左圆括号(
-	rparen,		//右圆括号)
-	comma,		//逗号,
-	semicolon,	//分号;
-	period,		//句号.
-	becomes,	//定义为:=
-	beginsym,	//begin
-	endsym,		//end
-	ifsym,		//if
-	thensym,	//then
-	whilesym,	//while
-	writesym,	//write
-	readsym,	//read
-	dosym,		//do while
-	callsym,	//call调用函数
-	constsym,	//常量const
-	varsym,		//变量var
-	procsym,	//函数procedure
-	comment		//注释
+	nul,		ident,		number,		plus,		minus,
+	times,		slash,		oddsym,		eql,		neq,
+	lss,		leq,		gtr,		geq,		lparen,
+	rparen,		comma,		semicolon,	period,		becomes,
+	beginsym,	endsym,		ifsym,		thensym,	whilesym,
+	writesym,	readsym,	dosym,		callsym,	constsym,
+	varsym,		procsym,	comment
 };
-#define symnum 33	//符号数量
+#define symnum 33
 
 /*虚拟机代码*/
 enum fct {
 	lit,	opr,	lod,
 	sto,	cal,	inte,
-	jmp,	jpc
+	jmp,	jpc,	ssto	//增加一个ssto的辅助指令
 };
-#define fctnum 8
+#define fctnum 9
 
 /*虚拟机代码结构*/
 struct instruction {
@@ -138,7 +112,7 @@ int addset(bool* sr, bool* s1, bool* s2, int n);
 int subset(bool* sr, bool* s1, bool* s2, int n);
 int mulset(bool* sr, bool* s1, bool* s2, int n);
 int gen(enum fct x, int y, int z);
-int block(int lev, int tx, bool* fsys);
+int block(int lev, int tx, bool* fsys, int offset);
 int constdeclaration(int* ptx, int lev, int* pdx);
 int vardeclaration(int* ptx, int lev, int* pdx);
 void enter(enum object k, int* ptx, int lev, int* pdx);

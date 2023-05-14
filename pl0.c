@@ -39,7 +39,7 @@ int main() {
 			addset(nxtlev, declbegsys, statbegsys, symnum);
 			nxtlev[period] = true;
 
-			if (block(0, 0, nxtlev) == -1) {	//调用编译程序
+			if (block(0, 0, nxtlev, 0) == -1) {	//调用编译程序
 				fclose(fa);
 				fclose(fa1);
 				fclose(fas);
@@ -70,7 +70,7 @@ int main() {
 		printf("Can't open file!\n");
 	}//end if(fin)
 
-	printf("\n");
+ 	printf("\n");
 	return 0;
 }
 
@@ -131,6 +131,7 @@ void init() {
 	strcpy(&(mnemonic[opr][0]), "opr");
 	strcpy(&(mnemonic[lod][0]), "lod");
 	strcpy(&(mnemonic[sto][0]), "sto");
+	strcpy(&(mnemonic[ssto][0]), "ssto");
 	strcpy(&(mnemonic[cal][0]), "cal");
 	strcpy(&(mnemonic[inte][0]), "inte");
 	strcpy(&(mnemonic[jmp][0]), "jmp");
@@ -351,11 +352,12 @@ int mulset(bool* sr, bool* s1, bool* s2, int n)
 
 /*
 * 编译程序
-* lev: 当前分程序所在层
-* tx:  名字表当前尾指针
-* fsys:当前模块后跟符号集
+* lev:		当前分程序所在层
+* tx:		名字表当前尾指针
+* fsys:		当前模块后跟符号集
+* offset:	尾指针的偏移量
 */
-int block(int lev, int tx, bool* fsys) {
+int block(int lev, int tx, bool* fsys, int offset) {
 	int i;
 
 	int dx;					//名字分配到的相对地址
@@ -365,9 +367,11 @@ int block(int lev, int tx, bool* fsys) {
 							传递进来的是指针，为防止下级函数改变上级函数的集合，开辟新的空?
 							传递给下级函数*/
 
-	dx = 3;
+	dx = 3;		//过程数据大小初始为3，每有一条声明，dx增加1
 	tx0 = tx;	//记录本层名字的初始位置
 	table[tx].adr = cx;
+	tx = tx + offset;	//如果offset不为0，表示存在参数，而参数在上一层实现，需要使tx偏移以避免覆盖参数在名字表中占的位置
+	dx = dx + offset;	//地址空间也要相应扩大
 
 	gendo(jmp, 0, 0);	//每个过程都会生成这个指令，包括程序初始也会生成一个这个指令
 
@@ -419,6 +423,36 @@ int block(int lev, int tx, bool* fsys) {
 				error(4);	//procedure后应为标识符
 			}
 
+			//带参数的过程
+			int tx1 = tx;	//保留原始的tx不变
+			int dx1 = 3;	//相对位置
+			if (sym == lparen) {
+				getsymdo;
+				if (sym == varsym) {
+					getsymdo;
+					vardeclarationdo(&tx1, lev + 1, &dx1);
+					table[tx].val++;	//用过程在名字表中的val值表示参数的个数
+					while (sym == comma) {
+						getsymdo;
+						if (sym != varsym) {
+							error(40);	//参数错误
+						}
+						getsymdo;
+						vardeclarationdo(&tx1, lev + 1, &dx1);
+						table[tx].val++;
+					}
+				}
+				else {
+					error(40);	//参数类型只能是var
+				}
+				if (sym == rparen) {
+					getsymdo;
+				}
+				else {
+					error(41);	//缺少右括号
+				}
+			}
+			
 			if (sym == semicolon) {	//过程名后要加分号
 				getsymdo;
 			}
@@ -430,8 +464,9 @@ int block(int lev, int tx, bool* fsys) {
 			nxtlev[semicolon] = true;
 
 			/*可以当作 block(lev + 1, tx, nxtlev); */
-			if (block(lev + 1, tx, nxtlev) == -1) {
-				return -1;	//递归调用, 过程中包含过程
+			/*递归调用, 过程中包含过程, 因此过程块必须要用begin end, 否则第二个过程会被当作前一个过程的子过程*/
+			if (block(lev + 1, tx, nxtlev, table[tx].val) == -1) {
+				return -1;
 			}
 
 			if (sym == semicolon) {
@@ -458,7 +493,7 @@ int block(int lev, int tx, bool* fsys) {
 
 	if (tableswitch) {		//输出名字表
 		printf("TABLE:\n");
-		if (tx0 + 1 > tx) {
+		if (tx0 + 1 > tx) {	//tx0+1>tx表示尾指针没有移动
 			printf("	NULL\n");
 		}
 		for (i = tx0 + 1; i <= tx; i++) {
@@ -487,8 +522,18 @@ int block(int lev, int tx, bool* fsys) {
 		printf("\n");
 	}//end if (tableswitch)
 
+	/*为所有作为参数的变量生成赋值代码*/
+	if (offset) {
+		int dx1 = 3;
+		for (i = tx0; i < tx0 + offset; i++) {
+			gendo(lit, 0, 0);	//不确定具体数值，先生成代码
+			gendo(sto, 0, dx1);
+			dx1++;
+		}
+	}
+
 	/*语句后跟符号为分号或end*/
-	memcpy(nxtlev, fsys, sizeof(bool)* symnum);	//每个后跟符号集合都包含上层后根符号集合，以便补救
+	memcpy(nxtlev, fsys, sizeof(bool)* symnum);	//每个后跟符号集合都包含上层后跟符号集合，以便补救
 	nxtlev[semicolon] = true;
 	nxtlev[endsym] = true;
 	statementdo(nxtlev, &tx, lev);
@@ -710,18 +755,43 @@ int statement(bool* fsys, int* ptx, int lev) {
 					}
 					else {
 						i = position(id, *ptx);
+						getsymdo;
 						if (i == 0) {
 							error(11);	//过程未找到
 						}
 						else {
 							if (table[i].kind == procedur) {
+								int para = 0;	//传入的实参个数
+								if (sym == lparen) {
+									do {
+										getsymdo;
+										para++;
+										if (para <= table[i].val) {
+											memcpy(nxtlev, fsys, sizeof(bool)* symnum);
+											expressiondo(nxtlev, ptx, lev);	//处理实参中的表达式
+											int address = table[i].adr + 1 + (para - 1) * 2;
+											gendo(ssto, 0, address);	//进行回填
+										}
+										else {
+											error(41);	//参数数量过多
+										}
+									} while (sym == comma);	//参数必须是标识符或数字
+									if (sym == rparen) {
+										getsymdo;
+									}
+									else {
+										error(40);	//缺少右括号
+									}
+								}
+								if (para < table[i].val) {
+									error(41);	//参数数量过少
+								}
 								gendo(cal, lev - table[i].level, table[i].adr);	//生成call指令
 							}
 							else {
 								error(15);	//call后标识符应为过程
 							}
 						}
-						getsymdo;
 					}//end else
 				}//end if (sym == callsym)
 				else {
@@ -1104,6 +1174,9 @@ void interpret() {
 		case sto:	//栈顶的值存到相对当前过程的数据基地址为a的内存
 			t--;
 			s[base(i.l, s, b) + i.a] = s[t];
+			break;
+		case ssto:	//将栈顶的值存入lit指令
+			code[i.a].a = s[t - 1];
 			break;
 		case cal:	//调用子过程
 			s[t] = base(i.l, s, b);	//将父过程基地址入栈
