@@ -21,17 +21,18 @@ enum symbol {
 	rparen,		comma,		semicolon,	period,		becomes,
 	beginsym,	endsym,		ifsym,		thensym,	whilesym,
 	writesym,	readsym,	dosym,		callsym,	constsym,
-	varsym,		procsym,	comment
+	varsym,		procsym,	comment,	colon
 };
-#define symnum 33
+#define symnum 34
 
 /*虚拟机代码*/
 enum fct {
 	lit,	opr,	lod,
 	sto,	cal,	inte,
-	jmp,	jpc,	ssto	//增加一个ssto的辅助指令
+	jmp,	jpc,	ssto,
+	vis,	ssta,	chk
 };
-#define fctnum 9
+#define fctnum 12
 
 /*虚拟机代码结构*/
 struct instruction {
@@ -53,10 +54,11 @@ enum object {
 struct tablestruct{
 	char name[al];		//名字
 	enum object kind;	//类型：const, var, array or procedure
-	int val;			//数值，仅const使用
+	int val;			//数值，仅const使用（procedure使用时表示参数数量）
 	int level;			//所处层，仅const不使用
 	int adr;			//地址，仅const不使用
-	int size;			//需要分配的数据区空间，仅procedure使用
+	int size;			//仅procedure和array使用，分别表示需要分配的数据区空间和数组大小
+	int lbound;			//下界，仅array使用
 };
 struct tablestruct table[txmax];	//名字表
 
