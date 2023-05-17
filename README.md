@@ -101,3 +101,36 @@ write(a(1));
 ⑩修改read处理语句
 
 ⑪修改block函数，输出含有数组的名字表
+
+## 2023/5/17
+
+增加了repeat until语句
+
+### 1.示例
+
+```pl0
+var x;
+begin
+	x := 0;
+	repeat
+	    begin
+			x := x + 1;
+			write(x);
+	    end
+	until x > 4;
+end.
+```
+
+### 2.步骤
+
+①增加repeatsym和untilsym两个符号，并修改符号数symnum
+
+②添加repeat和until保留字，按字母顺序排列
+
+③设置repeat和until保留字符号
+
+④修改关键字个数
+
+⑤设置repeatsym为语句开始符号
+
+⑥在statement函数中增加if (sym==repeatsym)语句
