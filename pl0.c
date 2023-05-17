@@ -101,34 +101,36 @@ void init() {
 	strcpy(&(word[1][0]), "call");
 	strcpy(&(word[2][0]), "const");
 	strcpy(&(word[3][0]), "do");
-	strcpy(&(word[4][0]), "end");
-	strcpy(&(word[5][0]), "if");
-	strcpy(&(word[6][0]), "odd");
-	strcpy(&(word[7][0]), "procedure");
-	strcpy(&(word[8][0]), "read");
-	strcpy(&(word[9][0]), "repeat");
-	strcpy(&(word[10][0]), "then");
-	strcpy(&(word[11][0]), "until");
-	strcpy(&(word[12][0]), "var");
-	strcpy(&(word[13][0]), "while");
-	strcpy(&(word[14][0]), "write");
+	strcpy(&(word[4][0]), "else");
+	strcpy(&(word[5][0]), "end");
+	strcpy(&(word[6][0]), "if");
+	strcpy(&(word[7][0]), "odd");
+	strcpy(&(word[8][0]), "procedure");
+	strcpy(&(word[9][0]), "read");
+	strcpy(&(word[10][0]), "repeat");
+	strcpy(&(word[11][0]), "then");
+	strcpy(&(word[12][0]), "until");
+	strcpy(&(word[13][0]), "var");
+	strcpy(&(word[14][0]), "while");
+	strcpy(&(word[15][0]), "write");
 
 	/*设置保留字符号*/
 	wsym[0] = beginsym;
 	wsym[1] = callsym;
 	wsym[2] = constsym;
 	wsym[3] = dosym;
-	wsym[4] = endsym;
-	wsym[5] = ifsym;
-	wsym[6] = oddsym;
-	wsym[7] = procsym;
-	wsym[8] = readsym;
-	wsym[9] = repeatsym;
-	wsym[10] = thensym;
-	wsym[11] = untilsym;
-	wsym[12] = varsym;
-	wsym[13] = whilesym;
-	wsym[14] = writesym;
+	wsym[4] = elsesym;
+	wsym[5] = endsym;
+	wsym[6] = ifsym;
+	wsym[7] = oddsym;
+	wsym[8] = procsym;
+	wsym[9] = readsym;
+	wsym[10] = repeatsym;
+	wsym[11] = thensym;
+	wsym[12] = untilsym;
+	wsym[13] = varsym;
+	wsym[14] = whilesym;
+	wsym[15] = writesym;
 
 	/*设置指令名称*/
 	strcpy(&(mnemonic[lit][0]), "lit");
@@ -940,8 +942,43 @@ int statement(bool* fsys, int* ptx, int lev) {
 						cx1 = cx;	//保存当前指令地址
 						gendo(jpc, 0, 0);	//生成条件跳转指令，跳转地址未知，暂时写0
 						statementdo(fsys, ptx, lev);	//处理then后的语句
-						code[cx1].a = cx;	//经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址
-						//地址回填
+						int cx3 = cx;	//用cx3~cxf回填if语句部分所有的jmp指令
+						
+						if (sym == elsesym) {
+							while (sym == elsesym) {	//循环处理多个else if语句
+								getsymdo;
+								if (sym == ifsym) {	//按else if语句处理
+									getsymdo;
+									gendo(jmp, 0, 0);	//满足前一个判断条件，则无条件跳转到整个if语句的最后
+									code[cx1].a = cx;
+									conditiondo(nxtlev, ptx, lev);
+									if (sym == thensym) {
+										getsymdo;
+									}
+									else {
+										error(16);	//缺少then
+									}
+									cx1 = cx;
+									gendo(jpc, 0, 0);
+									statementdo(fsys, ptx, lev);
+								}
+								else {	//按else语句处理
+									gendo(jmp, 0, 0);
+									code[cx1].a = cx;
+									statementdo(fsys, ptx, lev);
+									break;
+								}
+							}
+							for (i = cx3; i <= cx; i++) {	//回填jmp指令
+								if (code[i].f == jmp && code[i].a == 0) {
+									code[i].a = cx;
+								}
+							}
+						}
+						else {
+							code[cx1].a = cx;	//经statement处理后，cx为then后语句执行完的位置，它正是前面未定的跳转地址
+						}
+						
 					}//end if (sym == ifsym)
 					else {
 						if (sym == beginsym) {	//准备按照复合语句处理
