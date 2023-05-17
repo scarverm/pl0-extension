@@ -5,7 +5,7 @@ typedef enum {
 	true
 } bool;
 
-#define norw 13		//关键字个数
+#define norw 15		//关键字个数
 #define al 10		//符号最大长度	用于文件名
 #define nmax 14		//number的最大位数
 #define txmax 100	//名字表容量
@@ -21,9 +21,10 @@ enum symbol {
 	rparen,		comma,		semicolon,	period,		becomes,
 	beginsym,	endsym,		ifsym,		thensym,	whilesym,
 	writesym,	readsym,	dosym,		callsym,	constsym,
-	varsym,		procsym,	comment,	colon
+	varsym,		procsym,	comment,	colon,		repeatsym,
+	untilsym
 };
-#define symnum 34
+#define symnum 36
 
 /*虚拟机代码*/
 enum fct {

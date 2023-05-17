@@ -106,10 +106,12 @@ void init() {
 	strcpy(&(word[6][0]), "odd");
 	strcpy(&(word[7][0]), "procedure");
 	strcpy(&(word[8][0]), "read");
-	strcpy(&(word[9][0]), "then");
-	strcpy(&(word[10][0]), "var");
-	strcpy(&(word[11][0]), "while");
-	strcpy(&(word[12][0]), "write");
+	strcpy(&(word[9][0]), "repeat");
+	strcpy(&(word[10][0]), "then");
+	strcpy(&(word[11][0]), "until");
+	strcpy(&(word[12][0]), "var");
+	strcpy(&(word[13][0]), "while");
+	strcpy(&(word[14][0]), "write");
 
 	/*设置保留字符号*/
 	wsym[0] = beginsym;
@@ -121,10 +123,12 @@ void init() {
 	wsym[6] = oddsym;
 	wsym[7] = procsym;
 	wsym[8] = readsym;
-	wsym[9] = thensym;
-	wsym[10] = varsym;
-	wsym[11] = whilesym;
-	wsym[12] = writesym;
+	wsym[9] = repeatsym;
+	wsym[10] = thensym;
+	wsym[11] = untilsym;
+	wsym[12] = varsym;
+	wsym[13] = whilesym;
+	wsym[14] = writesym;
 
 	/*设置指令名称*/
 	strcpy(&(mnemonic[lit][0]), "lit");
@@ -157,6 +161,7 @@ void init() {
 	statbegsys[callsym] = true;		//函数调用语句
 	statbegsys[ifsym] = true;		//if语句
 	statbegsys[whilesym] = true;	//while语句
+	statbegsys[repeatsym] = true;	//repeat语句
 
 	/*设置因子开始符号集*/
 	facbegsys[ident] = true;		//名字
@@ -983,8 +988,24 @@ int statement(bool* fsys, int* ptx, int lev) {
 								code[cx2].a = cx;	//回填跳出循环的地址，与if类似
 							}//end if (sym == whilesym)
 							else {
-								memset(nxtlev, 0, sizeof(bool)* symnum);	//语句结束无补救集合
-								testdo(fsys, nxtlev, 19);	//检测语句结束的正确性
+								if (sym == repeatsym) {
+									cx1 = cx;	//保存循环体入口
+									getsymdo;
+									memcpy(nxtlev, fsys, sizeof(bool)* symnum);
+									statementdo(nxtlev, ptx, lev);	//执行循环体
+									if (sym == untilsym) {
+										getsymdo;
+									}
+									else {
+										error(44);	//缺少until关键字
+									}
+									conditiondo(nxtlev, ptx, lev);	//条件处理
+									gendo(jpc, 0, cx1);	//不满足条件则跳转会循环体入口
+								}
+								else {
+									memset(nxtlev, 0, sizeof(bool)* symnum);	//语句结束无补救集合
+									testdo(fsys, nxtlev, 19);	//检测语句结束的正确性
+								}
 							}
 						}//end else
 					}//end else
