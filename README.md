@@ -134,3 +134,38 @@ end.
 ⑤设置repeatsym为语句开始符号
 
 ⑥在statement函数中增加if (sym==repeatsym)语句
+
+## 2023/5/18
+
+增加了if-else if-else语句
+
+### 1.示例
+
+```pl0
+var x;
+begin
+	read(x);
+	if x = 1 then
+		write(1)
+	else if x = 2 then
+		begin
+			if x = 2 then
+				write(2)
+			else
+				write(22);
+			write(222);
+		end
+	else if x = 3 then
+		write(3)
+	else
+		write(4);
+end.
+```
+
+### 2.步骤
+
+①首先要增加elsesym符号，修改symnum，修改关键字个数
+
+②设置保留字名字，设置保留字符号
+
+③在statement函数中修改if处理语句。如果if成立，则在处理完A后跳转到条件处理的末尾；如果if不成立，则跳转到else if；如果else if不成立，则跳转到下一个else if；如果当前else if是最后一个else if，则当不成立时跳转到else；任意一个if或else if成立都直接跳转到整个if语句的末尾
