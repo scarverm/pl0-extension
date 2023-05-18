@@ -32,6 +32,9 @@ int main() {
 		err = 0;
 		cc = cx = ll = 0;
 		ch = ' ';
+		tri = fai = 0;
+		memset(trlist, 0, sizeof(int) * listsize);
+		memset(trlist, 0, sizeof(int) * listsize);
 
 		if (getsym() != -1) {	//getsym通过getchdo返回-1
 			fa = fopen("fa.tmp", "w");
@@ -94,43 +97,46 @@ void init() {
 	ssym['.'] = period;
 	ssym['#'] = neq;
 	ssym[';'] = semicolon;
-	ssym['$'] = comment;
 
 	/*设置保留字名字, 按照字母顺序, 便于折半查找*/
-	strcpy(&(word[0][0]), "begin");
-	strcpy(&(word[1][0]), "call");
-	strcpy(&(word[2][0]), "const");
-	strcpy(&(word[3][0]), "do");
-	strcpy(&(word[4][0]), "else");
-	strcpy(&(word[5][0]), "end");
-	strcpy(&(word[6][0]), "if");
-	strcpy(&(word[7][0]), "odd");
-	strcpy(&(word[8][0]), "procedure");
-	strcpy(&(word[9][0]), "read");
-	strcpy(&(word[10][0]), "repeat");
-	strcpy(&(word[11][0]), "then");
-	strcpy(&(word[12][0]), "until");
-	strcpy(&(word[13][0]), "var");
-	strcpy(&(word[14][0]), "while");
-	strcpy(&(word[15][0]), "write");
+	strcpy(&(word[0][0]), "and");
+	strcpy(&(word[1][0]), "begin");
+	strcpy(&(word[2][0]), "call");
+	strcpy(&(word[3][0]), "const");
+	strcpy(&(word[4][0]), "do");
+	strcpy(&(word[5][0]), "else");
+	strcpy(&(word[6][0]), "end");
+	strcpy(&(word[7][0]), "if");
+	strcpy(&(word[8][0]), "odd");
+	strcpy(&(word[9][0]), "or");
+	strcpy(&(word[10][0]), "procedure");
+	strcpy(&(word[11][0]), "read");
+	strcpy(&(word[12][0]), "repeat");
+	strcpy(&(word[13][0]), "then");
+	strcpy(&(word[14][0]), "until");
+	strcpy(&(word[15][0]), "var");
+	strcpy(&(word[16][0]), "while");
+	strcpy(&(word[17][0]), "write");
 
 	/*设置保留字符号*/
-	wsym[0] = beginsym;
-	wsym[1] = callsym;
-	wsym[2] = constsym;
-	wsym[3] = dosym;
-	wsym[4] = elsesym;
-	wsym[5] = endsym;
-	wsym[6] = ifsym;
-	wsym[7] = oddsym;
-	wsym[8] = procsym;
-	wsym[9] = readsym;
-	wsym[10] = repeatsym;
-	wsym[11] = thensym;
-	wsym[12] = untilsym;
-	wsym[13] = varsym;
-	wsym[14] = whilesym;
-	wsym[15] = writesym;
+	wsym[0] = andsym;
+	wsym[1] = beginsym;
+	wsym[2] = callsym;
+	wsym[3] = constsym;
+	wsym[4] = dosym;
+	wsym[5] = elsesym;
+	wsym[6] = endsym;
+	wsym[7] = ifsym;
+	wsym[8] = oddsym;
+	wsym[9] = orsym;
+	wsym[10] = procsym;
+	wsym[11] = readsym;
+	wsym[12] = repeatsym;
+	wsym[13] = thensym;
+	wsym[14] = untilsym;
+	wsym[15] = varsym;
+	wsym[16] = whilesym;
+	wsym[17] = writesym;
 
 	/*设置指令名称*/
 	strcpy(&(mnemonic[lit][0]), "lit");
@@ -145,6 +151,7 @@ void init() {
 	strcpy(&(mnemonic[inte][0]), "inte");
 	strcpy(&(mnemonic[jmp][0]), "jmp");
 	strcpy(&(mnemonic[jpc][0]), "jpc");
+	strcpy(&(mnemonic[skp][0]), "ski");
 
 	/*设置符号集*/
 	for (i = 0; i < symnum; i++) {
@@ -215,9 +222,29 @@ int getch() {
 int getsym() {
 	int i, j, k;
 
-	while (ch == ' ' || ch == 10 || ch == 13 || ch == 9 || ch == '$') {	//忽略空格、换行、回车和TAB
+	while (ch == ' ' || ch == 10 || ch == 13 || ch == 9 || ch == '$' || ch == '{' || ch == '}') {	//忽略空格、换行、回车和TAB
 		if (ch == '$') {
 			cc = ll;
+		}
+		else if (ch == '{') {
+			if (cc == ll) {	//左花括号是最后一个字符
+				error(45);	//缺少右花括号
+			}
+			else {
+				getchdo;
+				while (ch != '}') {
+					if (cc == ll) {	//查询到行尾
+						error(45);
+					}
+					else {
+						getchdo;
+					}
+				}
+				getchdo;
+			}
+		}
+		else if (ch == '}') {
+			error(45);	//缺少左花括号
 		}
 		getchdo;
 	}
@@ -1119,6 +1146,7 @@ int expression(bool* fsys, int* ptx, int lev) {
 int condition(bool* fsys, int* ptx, int lev) {
 	enum symbol relop;	//保存当前关系运算符
 	bool nxtlev[symnum];
+	int i;
 
 	if (sym == oddsym) {	//准备按照odd运算处理
 		getsymdo;
@@ -1164,6 +1192,47 @@ int condition(bool* fsys, int* ptx, int lev) {
 				break;
 			}
 		}//end else
+	}
+	if (sym == orsym || sym == andsym) {
+		if (sym == andsym) {	//如果下一个符号是and，那当前关系表达式就是and语句
+			falist[fai] = cx;
+			fai++;
+			gendo(skp, 0, 0);	//如果不满足条件则整个条件表达式不成立
+			lastsym = andsym;
+		}
+		else if (lastsym == andsym && sym == orsym) {
+			//如果上一个符号是and，下一个符号是or，则也是and语句，但or后就是and语句的跳转目的地址
+			trlist[tri] = cx;	//最后一个and语句如果为真，则整个关系表达式就为真，因此填入真链
+			tri++;
+			gendo(skp, 1, 0);
+			for (i = 0; i < fai; i++) {
+				code[falist[i]].a = cx;
+			}
+			memset(falist, 0, sizeof(int) * listsize);
+			fai = 0;
+			lastsym = orsym;
+		}
+		else {	//上一个符号是or，下一个符号也是or，则为or语句
+			trlist[tri] = cx;
+			tri++;
+			gendo(skp, 1, 0);
+			lastsym = orsym;
+		}
+		getsymdo;
+		conditiondo(nxtlev, ptx, lev);
+	}
+	else {	//整个关系表达式处理完后，回填真链与假链，并重置真链、假链和lastsym
+		lastsym = nul;
+		for (i = 0; i < fai; i++) {
+			code[falist[i]].a = cx;
+		}
+		memset(falist, 0, sizeof(int) * listsize);
+		fai = 0;
+		for (i = 0; i < tri; i++) {
+			code[trlist[i]].a = cx;
+		}
+		memset(trlist, 0, sizeof(int) * listsize);
+		tri = 0;
 	}
 	return 0;
 }
@@ -1301,7 +1370,7 @@ void interpret() {
 				p = s[t + 2];
 				b = s[t + 1];
 				break;
-			case 1:		//未实现
+			case 1:
 				s[t - 1] = -s[t - 1];
 				break;
 			case 2:		//加法指令
@@ -1407,6 +1476,14 @@ void interpret() {
 		case jpc:	//条件跳转
 			t--;
 			if (s[t] == 0) {	//不满足条件则跳转
+				p = i.a;
+			}
+			break;
+		case skp:
+			if (s[t - 1] == 1 && i.l == 1) {	//满足条件则跳转
+				p = i.a;
+			}
+			else if (s[t - 1] == 0 && i.l == 0) {	//不满足条件则跳转
 				p = i.a;
 			}
 			break;

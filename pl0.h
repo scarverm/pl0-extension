@@ -5,7 +5,7 @@ typedef enum {
 	true
 } bool;
 
-#define norw 16		//关键字个数
+#define norw 18		//关键字个数
 #define al 10		//符号最大长度	用于文件名
 #define nmax 14		//number的最大位数
 #define txmax 100	//名字表容量
@@ -21,19 +21,20 @@ enum symbol {
 	rparen,		comma,		semicolon,	period,		becomes,
 	beginsym,	endsym,		ifsym,		thensym,	whilesym,
 	writesym,	readsym,	dosym,		callsym,	constsym,
-	varsym,		procsym,	comment,	colon,		repeatsym,
-	untilsym,	elsesym
+	varsym,		procsym,	colon,		repeatsym,	untilsym,
+	elsesym,	orsym,		andsym
 };
-#define symnum 37
+#define symnum 38
 
 /*虚拟机代码*/
 enum fct {
 	lit,	opr,	lod,
 	sto,	cal,	inte,
 	jmp,	jpc,	ssto,
-	vis,	ssta,	chk
+	vis,	ssta,	chk,
+	skp
 };
-#define fctnum 12
+#define fctnum 13
 
 /*虚拟机代码结构*/
 struct instruction {
@@ -71,6 +72,13 @@ FILE* fa;	//输出虚拟机代码
 FILE* fa1;	//输出源文件及其各行对应的首地址
 FILE* fa2;	//输出结果
 int err;	//错误计数器
+
+#define listsize 10
+enum symbol lastsym;	//上一个符号
+int tri;				//真链中指令地址数量
+int fai;				//假链中指令地址数量
+int trlist[listsize];	//真链，保存or语句的跳转指令地址
+int falist[listsize];	//假链，保存and语句的跳转指令地址
 
 int cc, ll;	//getch使用的计数器，cc表示当前字符的位置，ll表示line中有效字符的长度
 int cx;		//虚拟机代码指针，取值范围[0, cxmax-1]
