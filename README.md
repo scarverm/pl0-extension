@@ -47,7 +47,7 @@ end.
 ## 2023/5/16
 增加了数组
 
-1.测试代码
+### 1.示例
 
 ```pl0
 var a(2:5), c, d;
@@ -78,7 +78,7 @@ read(a(1));
 write(a(1));
 ```
 
-2.步骤：
+### 2.步骤：
 
 ①修改enter函数，在switch中增加一项case array，内容与case variable相同，因为其本质也是变量，同时也要在block函数的输出名字表处增加case array
 
@@ -169,3 +169,68 @@ end.
 ②设置保留字名字，设置保留字符号
 
 ③在statement函数中修改if处理语句。如果if成立，则在处理完A后跳转到条件处理的末尾；如果if不成立，则跳转到else if；如果else if不成立，则跳转到下一个else if；如果当前else if是最后一个else if，则当不成立时跳转到else；任意一个if或else if成立都直接跳转到整个if语句的末尾
+
+### 增加了另一种注释方式
+
+### 1.示例
+
+```
+{这是程序开头}
+var x;
+begin
+	read(x);	{这是read语句}
+	write(x);	{这是write语句}
+	if x > 2 {这是if语句} then
+		write(3)
+end.
+```
+
+### 2.步骤
+
+①添加符号lbrace和rbrace，修改符号数量symnum
+
+②设置单字字符
+
+③修改getsym函数，一旦获取到字符ch为'{'，就循环获取下一符号，直至ch为'}'，如果到了行尾还没出现右花括号，则报错，而如果还没遇到左花括号就遇到了右花括号，也要报错
+
+## 2023/5/19
+
+增加了逻辑与AND和逻辑或OR运算，且能实现短路
+
+### 1.示例
+
+```pl0
+var a, b, c, d, e, f;
+begin
+	read(a, b, c, d, e, f);
+	if a = 1 and b = 2 or c = 3 or d = 4 and e = 5 and f = 6 then
+	begin
+		write(a);
+		write(b);
+		write(c);
+		write(d);
+		write(e);
+		write(f);
+	end
+end.
+```
+
+### 2.步骤
+
+①增加orsym和andsym符号，修改symnum和关键字个数
+
+②设置保留字名字，设置保留字符号
+
+③要实现or和and的功能，对于带有or与and的关系表达式，可以把and两边的条件表达式看作是and语句，如果条件表达式两边不存在and，则看作是or语句，这样所有相邻的and语句就可以看作一个整体作为and语句段，对于每个or语句与and语句段，只要它们结果为真，整个关系表达式就为真，而如果and语句段中有and语句结果为假，就要跳转到其后相邻的or语句或and语句段前。
+
+④由于jpc条件跳转是在条件不满足的情况下才进行跳转，而or语句要求的是在条件满足的情况下进行跳转，因此需要扩展一下类P-code虚拟机
+
+⑤增加一条虚拟机代码skp，修改fctnum，设置指令名称
+
+⑥在interpret函数设置skp的功能
+
+⑦增加两个int类型数组作为真链和假链，并设置它们的指针
+
+⑧设置一个lastsym保存上一个符号，用于区分or语句和and语句段以及加入真链还是假链
+
+⑨修改condition函数
